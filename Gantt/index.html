@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OTC Provincial Harmonization – Project Gantt Chart</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    background: #ffffff;
+    color: #1a1a1a;
+    padding: 40px 48px 56px;
+    min-width: 1100px;
+  }
+
+  /* ── Header ── */
+  .doc-header {
+    margin-bottom: 36px;
+    border-bottom: 1.5px solid #d0cfc8;
+    padding-bottom: 20px;
+  }
+  .doc-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #0b0b0b;
+    margin-bottom: 6px;
+  }
+  .doc-subtitle {
+    font-size: 13px;
+    color: #6b6a65;
+    line-height: 1.5;
+  }
+  .doc-meta {
+    display: flex;
+    gap: 24px;
+    margin-top: 10px;
+  }
+  .doc-meta-item {
+    font-size: 12px;
+    color: #888780;
+  }
+  .doc-meta-item strong {
+    color: #3d3d3a;
+    font-weight: 500;
+  }
+
+  /* ── Gantt grid ── */
+  .gantt-container {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .gantt-grid {
+    display: grid;
+    grid-template-columns: 220px repeat(24, 1fr);
+    min-width: 900px;
+    row-gap: 0;
+  }
+
+  /* Quarter row */
+  .q-spacer { grid-column: 1; }
+  .q-cell {
+    font-size: 11px;
+    font-weight: 600;
+    color: #52514e;
+    text-align: center;
+    padding: 4px 0 6px;
+    border-bottom: 1px solid #d0cfc8;
+    letter-spacing: 0.02em;
+  }
+
+  /* Month row */
+  .m-spacer { grid-column: 1; height: 28px; }
+  .m-cell {
+    font-size: 10px;
+    color: #898781;
+    text-align: center;
+    padding: 5px 0 5px;
+    border-bottom: 1.5px solid #c3c2b7;
+    font-weight: 500;
+  }
+  .m-cell.q-start {
+    border-left: 1px solid #d0cfc8;
+  }
+
+  /* Section header rows */
+  .section-row {
+    grid-column: 1 / -1;
+    background: #f5f4ef;
+    padding: 7px 12px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #3d3d3a;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-top: 1px solid #d0cfc8;
+    border-bottom: 0.5px solid #e1e0d9;
+    margin-top: 4px;
+  }
+
+  /* Activity rows */
+  .act-label {
+    padding: 0 12px 0 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 38px;
+    border-bottom: 0.5px solid #eeede7;
+  }
+  .act-name {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: #1a1a1a;
+    line-height: 1.3;
+  }
+  .act-desc {
+    font-size: 10.5px;
+    color: #898781;
+    margin-top: 1px;
+    line-height: 1.3;
+  }
+
+  .act-cell {
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    padding: 5px 1px;
+    border-bottom: 0.5px solid #eeede7;
+    position: relative;
+  }
+  .act-cell.q-start {
+    border-left: 0.5px solid #e1e0d9;
+  }
+
+  /* Bar styles */
+  .bar {
+    height: 24px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    padding: 0 8px;
+    width: 100%;
+    letter-spacing: 0.01em;
+  }
+  .bar-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Phase colors – using accessible pairings */
+  .ph-init    { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+  .ph-map     { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+  .ph-harm    { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+  .ph-diss    { background: #dcfce7; color: #14532d; border: 1px solid #bbf7d0; }
+  .ph-impl    { background: #ede9fe; color: #3730a3; border: 1px solid #c4b5fd; }
+  .ph-eval    { background: #ffe4e6; color: #9f1239; border: 1px solid #fecdd3; }
+  .ph-coord   { background: #e0f2fe; color: #0c4a6e; border: 1px solid #bae6fd; }
+
+  /* Continuous evaluation bar (runs full width with opacity) */
+  .ph-cont    { background: #f0fdf4; color: #166534; border: 1px dashed #86efac; }
+
+  /* ── Calendar footer ── */
+  .cal-footer {
+    display: grid;
+    grid-template-columns: 220px repeat(24, 1fr);
+    margin-top: 4px;
+  }
+  .cal-spacer { grid-column: 1; }
+  .cal-period {
+    font-size: 10px;
+    color: #898781;
+    text-align: center;
+    padding: 5px 2px 0;
+    border-top: 1px solid #d0cfc8;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    margin-top: 28px;
+    padding-top: 18px;
+    border-top: 1px solid #e1e0d9;
+  }
+  .legend-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #52514e;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 10px;
+  }
+  .legend-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 20px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11.5px;
+    color: #3d3d3a;
+  }
+  .legend-swatch {
+    width: 28px;
+    height: 14px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  /* ── Milestones ── */
+  .milestones {
+    margin-top: 28px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .milestone-card {
+    background: #fafaf9;
+    border: 0.5px solid #d0cfc8;
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .milestone-period {
+    font-size: 10px;
+    font-weight: 600;
+    color: #898781;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+  }
+  .milestone-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 4px;
+  }
+  .milestone-detail {
+    font-size: 11px;
+    color: #6b6a65;
+    line-height: 1.5;
+  }
+
+  /* ── Footer note ── */
+  .foot-note {
+    margin-top: 32px;
+    font-size: 10.5px;
+    color: #898781;
+    line-height: 1.6;
+    border-top: 0.5px solid #e1e0d9;
+    padding-top: 12px;
+  }
+
+  @media print {
+    body { padding: 20px 24px 32px; }
+    .gantt-container { overflow: visible; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ Document header ══ -->
+<div class="doc-header">
+  <div class="doc-title">Ontario OTC Provincial Harmonization Study – Implementation Timeline</div>
+  <div class="doc-subtitle">Development, implementation, and evaluation of a harmonized ovarian tissue cryopreservation care pathway across all five POGO paediatric oncology centres</div>
+  <div class="doc-meta">
+    <div class="doc-meta-item"><strong>Funding:</strong> SUMO AHSC AFP Innovation Fund – Round 13 (2026)</div>
+    <div class="doc-meta-item"><strong>Project period:</strong> April 2027 – March 2029</div>
+    <div class="doc-meta-item"><strong>Duration:</strong> 24 months</div>
+    <div class="doc-meta-item"><strong>Sites:</strong> SickKids · Hamilton · London · CHEO Ottawa · Kingston</div>
+  </div>
+</div>
+
+<!-- ══ Gantt chart ══ -->
+<div class="gantt-container">
+<div class="gantt-grid">
+
+  <!-- Quarter labels -->
+  <div class="q-spacer"></div>
+  <div class="q-cell" style="grid-column:2/8">Q2–Q3 2027</div>
+  <div class="q-cell" style="grid-column:8/14">Q4 2027 – Q1 2028</div>
+  <div class="q-cell" style="grid-column:14/20">Q2–Q3 2028</div>
+  <div class="q-cell" style="grid-column:20/26">Q4 2028 – Q1 2029</div>
+
+  <!-- Month labels -->
+  <div class="m-spacer"></div>
+  <div class="m-cell">Apr</div><div class="m-cell">May</div><div class="m-cell">Jun</div>
+  <div class="m-cell">Jul</div><div class="m-cell">Aug</div><div class="m-cell">Sep</div>
+  <div class="m-cell q-start">Oct</div><div class="m-cell">Nov</div><div class="m-cell">Dec</div>
+  <div class="m-cell">Jan</div><div class="m-cell">Feb</div><div class="m-cell">Mar</div>
+  <div class="m-cell q-start">Apr</div><div class="m-cell">May</div><div class="m-cell">Jun</div>
+  <div class="m-cell">Jul</div><div class="m-cell">Aug</div><div class="m-cell">Sep</div>
+  <div class="m-cell q-start">Oct</div><div class="m-cell">Nov</div><div class="m-cell">Dec</div>
+  <div class="m-cell">Jan</div><div class="m-cell">Feb</div><div class="m-cell">Mar</div>
+
+  <!-- ── PHASE 1: Initiation & Baseline ── -->
+  <div class="section-row">Phase 1 — Initiation &amp; Baseline (Months 1–6)</div>
+
+  <div class="act-label">
+    <div class="act-name">Project initiation</div>
+    <div class="act-desc">Coordinator onboarded · ethics confirmation</div>
+  </div>
+  <!-- M1-M2 = cols 2-3 -->
+  <div class="act-cell" style="grid-column:2/4"><div class="bar ph-init"><span class="bar-text">M1–2</span></div></div>
+  <div class="act-cell" style="grid-column:4/8"></div>
+  <div class="act-cell q-start" style="grid-column:8/14"></div>
+  <div class="act-cell q-start" style="grid-column:14/20"></div>
+  <div class="act-cell q-start" style="grid-column:20/26"></div>
+
+  <div class="act-label">
+    <div class="act-name">Baseline data collection</div>
+    <div class="act-desc">Pre-implementation referral rates · OTC uptake · practice variation across 5 sites</div>
+  </div>
+  <div class="act-cell" style="grid-column:2/8"><div class="bar ph-init"><span class="bar-text">M1–6 · All 5 sites</span></div></div>
+  <div class="act-cell q-start" style="grid-column:8/14"></div>
+  <div class="act-cell q-start" style="grid-column:14/20"></div>
+  <div class="act-cell q-start" style="grid-column:20/26"></div>
+
+  <div class="act-label">
+    <div class="act-name">CFIR stakeholder interviews</div>
+    <div class="act-desc">Barriers &amp; facilitators · MDT providers</div>
+  </div>
+  <div class="act-cell" style="grid-column:2/8"><div class="bar ph-init"><span class="bar-text">M1–6 · Pre-implementation</span></div></div>
+  <div class="act-cell q-start" style="grid-column:8/14"></div>
+  <div class="act-cell q-start" style="grid-column:14/20"></div>
+  <div class="act-cell q-start" style="grid-column:20/26"></div>
+
+  <div class="act-label">
+    <div class="act-name">Working Group constituted</div>
+    <div class="act-desc">MDT reps from all 5 centres</div>
+  </div>
+  <div class="act-cell" style="grid-column:2/4"><div class="bar ph-init"><span class="bar-text">M1–2</span></div></div>
+  <div class="act-cell" style="grid-column:4/8"></div>
+  <div class="act-cell q-start" style="grid-column:8/14"></div>
+  <div class="act-cell q-start" style="grid-column:14/20"></div>
+  <div class="act-cell q-start" style="grid-column:20/26"></div>
+
+  <!-- ── PHASE 2: Pathway Mapping ── -->
+  <div class="section-row">Phase 2 — Care Pathway Mapping (Months 3–6)</div>
+
+  <div class="act-label">
+    <div class="act-name">Site-specific practice mapping</div>
+    <div class="act-desc">Risk stratification · referral · consent · counselling · transportation</div>
+  </div>
+  <div class="act-cell" style="grid-column:2/4"></div>
+  <div class="act-cell" style="grid-column:4/8"><div class="bar ph-map"><span class="bar-text">M3–6 · All 5 sites</span></div></div>
+  <div class="act-cell q-start" style="grid-column:8/14"></div>
+  <div class="act-cell q-start" style="grid-column:14/20"></div>
+  <div class="act-cell q-start" style="grid-column:20/26"></div>
+
+  <div class="act-label">
+    <div class="act-name">Discrepancy prioritization</div>
+    <div class="act-desc">Clinical importance · heterogeneity · feasibility</div>
+  </div>
+  <div class="act-cell" style="grid-column:2/6"></div>
+  <div class="act-cell" style="grid-column:6/8"><div class="bar ph-map"><span class="bar-text">M5–6</span></div></div>
+  <div class="act-cell q-start" style="grid-column:8/14"></div>
+  <div class="act-cell q-start" style="grid-column:14/20"></div>
+  <div class="act-cell q-start" style="grid-column:20/26"></div>
+
+  <!-- ── PHASE 3: Harmonization ── -->
+  <div class="section-row">Phase 3 — Harmonization Meetings (Months 7–8)</div>
+
+  <div class="act-label">
+    <div class="act-name">In-person harmonization meeting</div>
+    <div class="act-desc">All 5 site representatives · consensus building · Likert feasibility rating</div>
+  </div>
+  <div class="act-cell" style="grid-column:2/8"></div>
+  <div class="act-cell q-start" style="grid-column:8/9"><div class="bar ph-harm"><span class="bar-text">M7</span></div></div>
+  <div class="act-cell" style="grid-column:9/14"></div>
+  <div class="act-cell q-start" style="grid-column:14/20"></div>
+  <div class="act-cell q-start" style="grid-column:20/26"></div>
+
+  <div class="act-label">
+    <div class="act-name">Virtual follow-up meeting</div>
+    <div class="act-desc">Finalize pathway · site-specific adaptation plans</div>
+  </div>
+  <div class="act-cell" style="grid-column:2/8"></div>
+  <div class="act-cell q-start" style="grid-column:8/10"><div class="bar ph-harm"><span class="bar-text">M7–8</span></div></div>
+  <div class="act-cell" style="grid-column:10/14"></div>
+  <div class="act-cell q-start" style="grid-column:14/20"></div>
+  <div class="act-cell q-start" style="grid-column:20/26"></div>
+
+  <!-- ── PHASE 4: Dissemination & Training ── -->
+  <div class="section-row">Phase 4 — Dissemination &amp; Training (Months 9–12)</div>
+
+  <div class="act-label">
+    <div class="act-name">Pathway published on POGO website</div>
+    <div class="act-desc">Accessible to all 5 sites + satellite centres</div>
+  </div>
+  <div class="act-cell" style="grid-column:2/8"></div>
+  <div class="act-cell q-start" style="grid-column:8/10"></div>
+  <div class="act-cell" style="grid-column:10/14"><div class="bar ph-diss"><span class="bar-text">M9–12 · POGO network</span></div></div>
+  <div class="act-cell q-start" style="grid-column:14/20"></div>
+  <div class="act-cell q-start" style="grid-column:20/26"></div>
+
+  <div class="act-label">
+    <div class="act-name">Provider training</div>
+    <div class="act-desc">Webinars · workshops · mentorship · onboarding modules</div>
+  </div>
+  <div class="act-cell" style="grid-column:2/8"></div>
+  <div class="act-cell q-start" style="grid-column:8/10"></div>
+  <div class="act-cell" style="grid-column:10/14"><div class="bar ph-diss"><span class="bar-text">M9–12 · All 5 sites</span></div></div>
+  <div class="act-cell q-start" style="grid-column:14/20"></div>
+  <div class="act-cell q-start" style="grid-column:20/26"></div>
+
+  <div class="act-label">
+    <div class="act-name">Patient &amp; family materials</div>
+    <div class="act-desc">Age-appropriate · multilingual · program website + POGO</div>
+  </div>
+  <div class="act-cell" style="grid-column:2/8"></div>
+  <div class="act-cell q-start" style="grid-column:8/10"></div>
+  <div class="act-cell" style="grid-column:10/14"><div class="bar ph-diss"><span class="bar-text">M9–12</span></div></div>
+  <div class="act-cell q-start" style="grid-column:14/20"></div>
+  <div class="act-cell q-start" style="grid-column:20/26"></div>
+
+  <!-- ── PHASE 5: Full Implementation ── -->
+  <div class="section-row">Phase 5 — Full Implementation (Months 13–18)</div>
+
+  <div class="act-label">
+    <div class="act-name">Harmonized pathway operational</div>
+    <div class="act-desc">All 5 sites · including Kingston Health Sciences</div>
+  </div>
+  <div class="act-cell" style="grid-column:2/8"></div>
+  <div class="act-cell q-start" style="grid-column:8/14"></div>
+  <div class="act-cell q-start" style="grid-column:14/20"><div class="bar ph-impl"><span class="bar-text">M13–18 · Province-wide</span></div></div>
+  <div class="act-cell q-start" style="grid-column:20/26"></div>
+
+  <div class="act-label">
+    <div class="act-name">EMR referral prompts deployed</div>
+    <div class="act-desc">Risk stratification tools · where feasible by site</div>
+  </div>
+  <div class="act-cell" style="grid-column:2/8"></div>
+  <div class="act-cell q-start" style="grid-column:8/14"></div>
+  <div class="act-cell q-start" style="grid-column:14/20"><div class="bar ph-impl"><span class="bar-text">M13–18</span></div></div>
+  <div class="act-cell q-start" style="grid-column:20/26"></div>
+
+  <div class="act-label">
+    <div class="act-name">PDSA improvement cycles</div>
+    <div class="act-desc">Quarterly · real-time strategy adaptation</div>
+  </div>
+  <div class="act-cell" style="grid-column:2/8"></div>
+  <div class="act-cell q-start" style="grid-column:8/14"></div>
+  <div class="act-cell q-start" style="grid-column:14/20"><div class="bar ph-impl"><span class="bar-text">M13–18 · Quarterly</span></div></div>
+  <div class="act-cell q-start" style="grid-column:20/26"></div>
+
+  <!-- ── PHASE 6: Evaluation & KT ── -->
+  <div class="section-row">Phase 6 — Evaluation &amp; Knowledge Translation (Months 19–24)</div>
+
+  <div class="act-label">
+    <div class="act-name">Post-implementation evaluation</div>
+    <div class="act-desc">Referral rates · time to counselling · OTC uptake vs. baseline</div>
+  </div>
+  <div class="act-cell" style="grid-column:2/8"></div>
+  <div class="act-cell q-start" style="grid-column:8/14"></div>
+  <div class="act-cell q-start" style="grid-column:14/20"></div>
+  <div class="act-cell q-start" style="grid-column:20/26"><div class="bar ph-eval"><span class="bar-text">M19–24 · All 5 sites</span></div></div>
+
+  <div class="act-label">
+    <div class="act-name">Post-impl qualitative interviews</div>
+    <div class="act-desc">MDT stakeholders · n=15–20 · CFIR domains</div>
+  </div>
+  <div class="act-cell" style="grid-column:2/8"></div>
+  <div class="act-cell q-start" style="grid-column:8/14"></div>
+  <div class="act-cell q-start" style="grid-column:14/20"></div>
+  <div class="act-cell q-start" style="grid-column:20/26"><div class="bar ph-eval"><span class="bar-text">M19–24</span></div></div>
+
+  <div class="act-label">
+    <div class="act-name">Knowledge translation</div>
+    <div class="act-desc">Peer-reviewed publication · national conferences · Ontario Health policy brief</div>
+  </div>
+  <div class="act-cell" style="grid-column:2/8"></div>
+  <div class="act-cell q-start" style="grid-column:8/14"></div>
+  <div class="act-cell q-start" style="grid-column:14/20"></div>
+  <div class="act-cell q-start" style="grid-column:20/26"><div class="bar ph-eval"><span class="bar-text">M19–24 · Multi-modal</span></div></div>
+
+  <!-- ── CONTINUOUS: Coordination & Registry ── -->
+  <div class="section-row">Continuous — Coordination &amp; Registry (Months 1–24)</div>
+
+  <div class="act-label">
+    <div class="act-name">Provincial registry maintenance</div>
+    <div class="act-desc">Referrals · procedures · outcomes · all sites</div>
+  </div>
+  <div class="act-cell" style="grid-column:2/8"><div class="bar ph-coord" style="border-radius:5px 0 0 5px; border-right:none;"><span class="bar-text"></span></div></div>
+  <div class="act-cell q-start" style="grid-column:8/14"><div class="bar ph-coord" style="border-radius:0; border-left:none; border-right:none;"><span class="bar-text">Ongoing · M1–24</span></div></div>
+  <div class="act-cell q-start" style="grid-column:14/20"><div class="bar ph-coord" style="border-radius:0; border-left:none; border-right:none;"><span class="bar-text"></span></div></div>
+  <div class="act-cell q-start" style="grid-column:20/26"><div class="bar ph-coord" style="border-radius:0 5px 5px 0; border-left:none;"><span class="bar-text"></span></div></div>
+
+  <div class="act-label">
+    <div class="act-name">Steering committee meetings</div>
+    <div class="act-desc">Monthly PI · quarterly all-site</div>
+  </div>
+  <div class="act-cell" style="grid-column:2/8"><div class="bar ph-coord" style="border-radius:5px 0 0 5px; border-right:none;"></div></div>
+  <div class="act-cell q-start" style="grid-column:8/14"><div class="bar ph-coord" style="border-radius:0; border-left:none; border-right:none;"><span class="bar-text">Monthly/Quarterly · M1–24</span></div></div>
+  <div class="act-cell q-start" style="grid-column:14/20"><div class="bar ph-coord" style="border-radius:0; border-left:none; border-right:none;"></div></div>
+  <div class="act-cell q-start" style="grid-column:20/26"><div class="bar ph-coord" style="border-radius:0 5px 5px 0; border-left:none;"></div></div>
+
+</div><!-- /gantt-grid -->
+
+<!-- Calendar footer -->
+<div class="cal-footer">
+  <div class="cal-spacer"></div>
+  <div class="cal-period" style="grid-column:2/8">Apr – Sep 2027</div>
+  <div class="cal-period" style="grid-column:8/14">Oct 2027 – Mar 2028</div>
+  <div class="cal-period" style="grid-column:14/20">Apr – Sep 2028</div>
+  <div class="cal-period" style="grid-column:20/26">Oct 2028 – Mar 2029</div>
+</div>
+
+</div><!-- /gantt-container -->
+
+<!-- ══ Legend ══ -->
+<div class="legend">
+  <div class="legend-title">Phase legend</div>
+  <div class="legend-items">
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#dbeafe; border:1px solid #bfdbfe;"></div>
+      Phase 1 – Initiation &amp; baseline
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#d1fae5; border:1px solid #a7f3d0;"></div>
+      Phase 2 – Pathway mapping
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#fef3c7; border:1px solid #fde68a;"></div>
+      Phase 3 – Harmonization
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#dcfce7; border:1px solid #bbf7d0;"></div>
+      Phase 4 – Dissemination &amp; training
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#ede9fe; border:1px solid #c4b5fd;"></div>
+      Phase 5 – Full implementation
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#ffe4e6; border:1px solid #fecdd3;"></div>
+      Phase 6 – Evaluation &amp; KT
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#e0f2fe; border:1px solid #bae6fd;"></div>
+      Continuous – Coordination &amp; registry
+    </div>
+  </div>
+</div>
+
+<!-- ══ Key milestones ══ -->
+<div style="margin-top:28px;">
+  <div style="font-size:11px; font-weight:600; color:#52514e; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:12px;">Key milestones</div>
+  <div class="milestones">
+    <div class="milestone-card">
+      <div class="milestone-period">Month 2 · May 2027</div>
+      <div class="milestone-title">Working Group constituted</div>
+      <div class="milestone-detail">Multidisciplinary representatives from all five POGO paediatric oncology centres formally engaged</div>
+    </div>
+    <div class="milestone-card">
+      <div class="milestone-period">Month 6 · Sep 2027</div>
+      <div class="milestone-title">Baseline data complete</div>
+      <div class="milestone-detail">Pre-implementation referral rates, OTC uptake, and practice variation documented across all five sites</div>
+    </div>
+    <div class="milestone-card">
+      <div class="milestone-period">Month 7–8 · Oct–Nov 2027</div>
+      <div class="milestone-title">Harmonization achieved</div>
+      <div class="milestone-detail">In-person and virtual harmonization meetings completed; consensus on care pathway components reached</div>
+    </div>
+    <div class="milestone-card">
+      <div class="milestone-period">Month 9 · Dec 2027</div>
+      <div class="milestone-title">Pathway published on POGO website</div>
+      <div class="milestone-detail">Harmonized OTC care pathway accessible to all five sites, satellite centres, and national network</div>
+    </div>
+    <div class="milestone-card">
+      <div class="milestone-period">Month 13 · Apr 2028</div>
+      <div class="milestone-title">Full provincial implementation</div>
+      <div class="milestone-detail">All five sites — including Kingston — operating under the harmonized OTC care pathway</div>
+    </div>
+    <div class="milestone-card">
+      <div class="milestone-period">Month 24 · Mar 2029</div>
+      <div class="milestone-title">Evaluation &amp; policy brief complete</div>
+      <div class="milestone-detail">Post-implementation findings submitted for publication and compiled into Ontario Health business case policy brief</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Footer note ══ -->
+<div class="foot-note">
+  <strong>Framework:</strong> Mixed-methods evaluation guided by RE-AIM (Reach, Effectiveness, Adoption, Implementation, Maintenance), the Consolidated Framework for Implementation Research (CFIR), and Proctor's Implementation Outcomes Framework, coordinated with the concurrent OICR-funded evaluation (I2I.1448) at SickKids and Mount Sinai Fertility. &nbsp;·&nbsp;
+  <strong>Methodology:</strong> POGO care pathway harmonization model (Tomlinson et al. 2022; Yan et al. 2025; Mehrdadi et al. 2025; Mark et al. 2024). &nbsp;·&nbsp;
+  <strong>Sites:</strong> The Hospital for Sick Children (Toronto) · McMaster Children's Hospital (Hamilton) · Children's Hospital London Health Sciences Centre · Children's Hospital of Eastern Ontario (Ottawa) · Kingston Health Sciences Centre.
+</div>
+
+</body>
+</html>
